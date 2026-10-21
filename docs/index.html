@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="doc_title">Conector Microsoft Purview DLP — Guía de configuración | Ruvic</title>
+  <link rel="stylesheet" href="assets/ruvic.css">
+</head>
+<body class="guide">
+<div class="guide-shell">
+<main class="ruvic-container">
+  <nav class="ruvic-toc" aria-label="Índice">
+    <h2 data-i18n="toc_title">Contenido</h2>
+    <ol>
+      <li><a href="#que-es" data-i18n="toc.que_es">¿Qué es y para qué sirve?</a></li>
+      <li><a href="#prerrequisitos" data-i18n="toc.prerrequisitos">Prerrequisitos</a></li>
+      <li><a href="#configuracion-fabricante" data-i18n="toc.configuracion_fabricante">Configuración en el fabricante</a></li>
+      <li><a href="#permisos" data-i18n="toc.permisos">Permisos requeridos</a></li>
+      <li><a href="#configuracion-ruvic" data-i18n="toc.configuracion_ruvic">Configuración en Ruvic</a></li>
+      <li><a href="#verificacion" data-i18n="toc.verificacion">Verificación</a></li>
+      <li><a href="#solucion-problemas" data-i18n="toc.solucion_problemas">Solución de problemas</a></li>
+      <li><a href="#faq-seguridad" data-i18n="toc.faq_seguridad">Preguntas frecuentes y notas de seguridad</a></li>
+    </ol>
+  </nav>
+
+  <h1 data-i18n="guide_title">Conector Microsoft Purview DLP — Guía de configuración</h1>
+  <p class="guide-updated" data-i18n="guide_updated">Última actualización: octubre 2026</p>
+
+  <section id="que-es">
+    <h2 data-i18n="section.que_es">¿Qué es y para qué sirve?</h2>
+    <p data-i18n="que_es.body">El conector Microsoft Purview DLP permite que el agente de Ruvic consulte la prevención de pérdida de datos de Microsoft 365: alertas e incidentes DLP, eventos de coincidencia de políticas y qué políticas se están activando. Puedes pedirle cosas como:</p>
+    <ul>
+      <li data-i18n="que_es.example1">"¿Qué alertas DLP de severidad alta siguen nuevas?"</li>
+      <li data-i18n="que_es.example2">"¿Quién compartió información de tarjetas de crédito por correo ayer?"</li>
+      <li data-i18n="que_es.example3">"¿Qué políticas DLP se activaron más esta semana?"</li>
+    </ul>
+    <p data-i18n="que_es.ops_intro">Operaciones soportadas:</p>
+    <table>
+      <thead><tr><th data-i18n="table.operacion">Operación</th><th data-i18n="table.que_hace">Qué hace</th></tr></thead>
+      <tbody>
+        <tr><td><code>dlp.alerts.list</code></td><td data-i18n="op.1">Consulta alertas DLP por severidad y estado</td></tr>
+        <tr><td><code>dlp.incidents.list</code></td><td data-i18n="op.2">Consulta incidentes que contienen alertas DLP</td></tr>
+        <tr><td><code>dlp.events.list</code></td><td data-i18n="op.3">Consulta eventos DLP de la auditoría (usuario, archivo, política, tipo de información)</td></tr>
+        <tr><td><code>dlp.policies.triggered</code></td><td data-i18n="op.4">Resume las políticas activadas y cuántas veces</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-warning">
+      <span class="callout-title" data-i18n="callout.main.title">Solo lectura, con datos sensibles</span>
+      <span data-i18n="callout.main.body">El conector no cambia nada en Purview, pero los eventos incluyen usuarios y nombres de archivo. Limita quién puede usar el agente con este conector.</span>
+    </div>
+  </section>
+
+  <section id="prerrequisitos">
+    <h2 data-i18n="section.prerrequisitos">Prerrequisitos</h2>
+    <ul>
+      <li data-i18n="prereq.1">Microsoft 365 con Purview DLP (E3/E5 o complemento de cumplimiento) y políticas DLP activas.</li>
+      <li data-i18n="prereq.2">Auditoría unificada activada en Microsoft Purview → Auditoría.</li>
+      <li data-i18n="prereq.3">Rol de Administrador global o de aplicaciones para registrar la aplicación y dar consentimiento.</li>
+    </ul>
+  </section>
+
+  <section id="configuracion-fabricante">
+    <h2 data-i18n="section.configuracion_fabricante">Configuración en el fabricante</h2>
+    <p data-i18n="fabricante.intro">Vas a registrar una aplicación en Microsoft Entra ID con permisos de Graph y de Office 365 Management APIs.</p>
+    <ol class="ruvic-steps">
+      <li>
+        <strong data-i18n="step.1.label">Registra la aplicación.</strong>
+        <p data-i18n="step.1.body">En <strong>Microsoft Entra ID → Registros de aplicaciones → Nuevo registro</strong>, crea "Ruvic Purview DLP". Copia el <strong>Id. de aplicación</strong> y el <strong>Id. de directorio</strong>.</p>
+      </li>
+      <li>
+        <strong data-i18n="step.2.label">Agrega los permisos de Graph.</strong>
+        <p data-i18n="step.2.body">En <strong>Permisos de API → Microsoft Graph → Permisos de aplicación</strong>, marca <code>SecurityAlert.Read.All</code> y <code>SecurityIncident.Read.All</code>.</p>
+      </li>
+      <li>
+        <strong data-i18n="step.3.label">Agrega el permiso de auditoría.</strong>
+        <p data-i18n="step.3.body">En <strong>Agregar un permiso → Office 365 Management APIs → Permisos de aplicación</strong>, marca <code>ActivityFeed.ReadDlp</code>. Luego pulsa <strong>Conceder consentimiento de administrador</strong>.</p>
+        <div class="screenshot-placeholder" data-i18n="img.step3.placeholder">[ Captura: permisos de Graph y Office 365 Management APIs con consentimiento — reemplazar por assets/img/purview-permisos.png ]</div>
+      </li>
+      <li>
+        <strong data-i18n="step.4.label">Crea el secreto.</strong>
+        <p data-i18n="step.4.body">En <strong>Certificados y secretos → Nuevo secreto de cliente</strong>, copia el <strong>Valor</strong> de inmediato.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section id="permisos">
+    <h2 data-i18n="section.permisos">Permisos requeridos</h2>
+    <p data-i18n="permisos.intro">Permisos de aplicación, todos de solo lectura.</p>
+    <table>
+      <thead><tr><th data-i18n="table.permiso">Permiso</th><th data-i18n="table.para_que">Para qué lo usa el conector</th></tr></thead>
+      <tbody>
+        <tr><td><code>SecurityAlert.Read.All</code></td><td data-i18n="perm.1.desc">Consultar alertas DLP (Microsoft Graph)</td></tr>
+        <tr><td><code>SecurityIncident.Read.All</code></td><td data-i18n="perm.2.desc">Consultar incidentes (Microsoft Graph)</td></tr>
+        <tr><td><code>ActivityFeed.ReadDlp</code></td><td data-i18n="perm.3.desc">Leer eventos DLP de la auditoría (Office 365 Management APIs)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="configuracion-ruvic">
+    <h2 data-i18n="section.configuracion_ruvic">Configuración en Ruvic</h2>
+    <p data-i18n="ruvic.intro">Entra a <strong>Settings → Conectores</strong>, busca la tarjeta <strong>Microsoft Purview DLP</strong> y pulsa <strong>Configurar</strong>. Diligencia el formulario con los valores de la sección anterior:</p>
+    <table>
+      <thead><tr><th data-i18n="table.campo">Campo del formulario</th><th data-i18n="table.valor">Valor</th></tr></thead>
+      <tbody>
+        <tr><td data-i18n="field.tenant_id">Tenant ID (Directory ID)</td><td data-i18n="field.tenant_id.desc">Id. de directorio (inquilino) de Microsoft Entra ID</td></tr>
+        <tr><td data-i18n="field.client_id">Client ID (Application ID)</td><td data-i18n="field.client_id.desc">Id. de aplicación (cliente)</td></tr>
+        <tr><td data-i18n="field.client_secret">Client Secret</td><td data-i18n="field.client_secret.desc">El Valor del secreto. Se guarda cifrado</td></tr>
+        <tr><td data-i18n="field.connect_timeout">Timeout de conexión (segundos)</td><td data-i18n="field.connect_timeout.desc">Opcional; <code>30</code> segundos por defecto</td></tr>
+      </tbody>
+    </table>
+    <p data-i18n="ruvic.save">Guarda y pulsa <strong>Probar conexión</strong>: la plataforma valida las credenciales y el acceso.</p>
+    <div class="screenshot-placeholder" data-i18n="img.formulario.placeholder">[ Captura: formulario del conector Microsoft Purview DLP en Settings → Conectores — reemplazar por assets/img/purview_dlp-form.png ]</div>
+  </section>
+
+  <section id="verificacion">
+    <h2 data-i18n="section.verificacion">Verificación</h2>
+    <ol class="ruvic-steps">
+      <li>
+        <strong data-i18n="verif.1.label">Test de conexión exitoso.</strong>
+        <p data-i18n="verif.1.body">El botón <em>Probar conexión</em> debe responder con éxito y la tarjeta debe quedar en estado <strong>Configurado</strong>.</p>
+      </li>
+      <li>
+        <strong data-i18n="verif.2.label">Prueba mínima con el agente.</strong>
+        <p data-i18n="verif.2.body">Abre una conversación nueva y pídele:</p>
+        <blockquote data-i18n="verif.2.prompt">"¿Cuántas alertas DLP nuevas hay y de qué políticas?"</blockquote>
+        <p data-i18n="verif.2.result">El agente debe responder con alertas reales. Si es una configuración nueva, los eventos pueden tardar hasta 12 horas en aparecer.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section id="solucion-problemas">
+    <h2 data-i18n="section.solucion_problemas">Solución de problemas</h2>
+    <table>
+      <thead><tr><th data-i18n="table.sintoma">Mensaje / síntoma</th><th data-i18n="table.causa">Causa probable y solución</th></tr></thead>
+      <tbody>
+        <tr><td data-i18n="trouble.1.symptom">"Permiso insuficiente … Microsoft Graph"</td><td data-i18n="trouble.1.fix">Falta SecurityAlert.Read.All o SecurityIncident.Read.All, o el consentimiento de administrador.</td></tr>
+        <tr><td data-i18n="trouble.2.symptom">"Permiso insuficiente … ActivityFeed.ReadDlp"</td><td data-i18n="trouble.2.fix">Falta el permiso de Office 365 Management APIs o su consentimiento.</td></tr>
+        <tr><td data-i18n="trouble.3.symptom">Los eventos salen vacíos</td><td data-i18n="trouble.3.fix">La suscripción DLP.All se acaba de iniciar (espera hasta 12 horas) o la auditoría unificada está desactivada.</td></tr>
+        <tr><td data-i18n="trouble.4.symptom">"No se pudo obtener el token"</td><td data-i18n="trouble.4.fix">Tenant ID, Client ID o secreto incorrectos, o el secreto venció.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="faq-seguridad">
+    <h2 data-i18n="section.faq_seguridad">Preguntas frecuentes y notas de seguridad</h2>
+    <h3 data-i18n="faq.1.q">¿Por qué no puedo ver todas las políticas DLP?</h3>
+    <p data-i18n="faq.1.a">Microsoft solo expone el catálogo de políticas por PowerShell de Security &amp; Compliance. El conector muestra las políticas que se activaron en los eventos.</p>
+
+    <h3 data-i18n="faq.2.q">¿El conector puede cerrar alertas?</h3>
+    <p data-i18n="faq.2.a">No. Es de solo lectura.</p>
+
+    <h3 data-i18n="faq.3.q">¿Qué hago si el secreto se filtra?</h3>
+    <p data-i18n="faq.3.a">Elimínalo en Certificados y secretos, crea uno nuevo y actualízalo en el formulario.</p>
+
+  </section>
+
+</main>
+</div>
+
+<script>
+  const I18N = {
+  "es": {
+    "doc_title": "Conector Microsoft Purview DLP — Guía de configuración | Ruvic",
+    "toc_title": "Contenido",
+    "toc.que_es": "¿Qué es y para qué sirve?",
+    "toc.prerrequisitos": "Prerrequisitos",
+    "toc.configuracion_fabricante": "Configuración en el fabricante",
+    "toc.permisos": "Permisos requeridos",
+    "toc.configuracion_ruvic": "Configuración en Ruvic",
+    "toc.verificacion": "Verificación",
+    "toc.solucion_problemas": "Solución de problemas",
+    "toc.faq_seguridad": "Preguntas frecuentes y notas de seguridad",
+    "guide_title": "Conector Microsoft Purview DLP — Guía de configuración",
+    "guide_updated": "Última actualización: octubre 2026",
+    "section.que_es": "¿Qué es y para qué sirve?",
+    "que_es.body": "El conector Microsoft Purview DLP permite que el agente de Ruvic consulte la prevención de pérdida de datos de Microsoft 365: alertas e incidentes DLP, eventos de coincidencia de políticas y qué políticas se están activando. Puedes pedirle cosas como:",
+    "que_es.example1": "\"¿Qué alertas DLP de severidad alta siguen nuevas?\"",
+    "que_es.example2": "\"¿Quién compartió información de tarjetas de crédito por correo ayer?\"",
+    "que_es.example3": "\"¿Qué políticas DLP se activaron más esta semana?\"",
+    "que_es.ops_intro": "Operaciones soportadas:",
+    "table.operacion": "Operación",
+    "table.que_hace": "Qué hace",
+    "op.1": "Consulta alertas DLP por severidad y estado",
+    "op.2": "Consulta incidentes que contienen alertas DLP",
+    "op.3": "Consulta eventos DLP de la auditoría (usuario, archivo, política, tipo de información)",
+    "op.4": "Resume las políticas activadas y cuántas veces",
+    "callout.main.title": "Solo lectura, con datos sensibles",
+    "callout.main.body": "El conector no cambia nada en Purview, pero los eventos incluyen usuarios y nombres de archivo. Limita quién puede usar el agente con este conector.",
+    "section.prerrequisitos": "Prerrequisitos",
+    "prereq.1": "Microsoft 365 con Purview DLP (E3/E5 o complemento de cumplimiento) y políticas DLP activas.",
+    "prereq.2": "Auditoría unificada activada en Microsoft Purview → Auditoría.",
+    "prereq.3": "Rol de Administrador global o de aplicaciones para registrar la aplicación y dar consentimiento.",
+    "section.configuracion_fabricante": "Configuración en el fabricante",
+    "fabricante.intro": "Vas a registrar una aplicación en Microsoft Entra ID con permisos de Graph y de Office 365 Management APIs.",
+    "step.1.label": "Registra la aplicación.",
+    "step.1.body": "En <strong>Microsoft Entra ID → Registros de aplicaciones → Nuevo registro</strong>, crea \"Ruvic Purview DLP\". Copia el <strong>Id. de aplicación</strong> y el <strong>Id. de directorio</strong>.",
+    "step.2.label": "Agrega los permisos de Graph.",
+    "step.2.body": "En <strong>Permisos de API → Microsoft Graph → Permisos de aplicación</strong>, marca <code>SecurityAlert.Read.All</code> y <code>SecurityIncident.Read.All</code>.",
+    "step.3.label": "Agrega el permiso de auditoría.",
+    "step.3.body": "En <strong>Agregar un permiso → Office 365 Management APIs → Permisos de aplicación</strong>, marca <code>ActivityFeed.ReadDlp</code>. Luego pulsa <strong>Conceder consentimiento de administrador</strong>.",
+    "img.step3.placeholder": "[ Captura: permisos de Graph y Office 365 Management APIs con consentimiento — reemplazar por assets/img/purview-permisos.png ]",
+    "step.4.label": "Crea el secreto.",
+    "step.4.body": "En <strong>Certificados y secretos → Nuevo secreto de cliente</strong>, copia el <strong>Valor</strong> de inmediato.",
+    "section.permisos": "Permisos requeridos",
+    "permisos.intro": "Permisos de aplicación, todos de solo lectura.",
+    "table.permiso": "Permiso",
+    "table.para_que": "Para qué lo usa el conector",
+    "perm.1.desc": "Consultar alertas DLP (Microsoft Graph)",
+    "perm.2.desc": "Consultar incidentes (Microsoft Graph)",
+    "perm.3.desc": "Leer eventos DLP de la auditoría (Office 365 Management APIs)",
+    "section.configuracion_ruvic": "Configuración en Ruvic",
+    "ruvic.intro": "Entra a <strong>Settings → Conectores</strong>, busca la tarjeta <strong>Microsoft Purview DLP</strong> y pulsa <strong>Configurar</strong>. Diligencia el formulario con los valores de la sección anterior:",
+    "table.campo": "Campo del formulario",
+    "table.valor": "Valor",
+    "field.tenant_id": "Tenant ID (Directory ID)",
+    "field.tenant_id.desc": "Id. de directorio (inquilino) de Microsoft Entra ID",
+    "field.client_id": "Client ID (Application ID)",
+    "field.client_id.desc": "Id. de aplicación (cliente)",
+    "field.client_secret": "Client Secret",
+    "field.client_secret.desc": "El Valor del secreto. Se guarda cifrado",
+    "field.connect_timeout": "Timeout de conexión (segundos)",
+    "field.connect_timeout.desc": "Opcional; <code>30</code> segundos por defecto",
+    "ruvic.save": "Guarda y pulsa <strong>Probar conexión</strong>: la plataforma valida las credenciales y el acceso.",
+    "img.formulario.placeholder": "[ Captura: formulario del conector Microsoft Purview DLP en Settings → Conectores — reemplazar por assets/img/purview_dlp-form.png ]",
+    "section.verificacion": "Verificación",
+    "verif.1.label": "Test de conexión exitoso.",
+    "verif.1.body": "El botón <em>Probar conexión</em> debe responder con éxito y la tarjeta debe quedar en estado <strong>Configurado</strong>.",
+    "verif.2.label": "Prueba mínima con el agente.",
+    "verif.2.body": "Abre una conversación nueva y pídele:",
+    "verif.2.prompt": "\"¿Cuántas alertas DLP nuevas hay y de qué políticas?\"",
+    "verif.2.result": "El agente debe responder con alertas reales. Si es una configuración nueva, los eventos pueden tardar hasta 12 horas en aparecer.",
+    "section.solucion_problemas": "Solución de problemas",
+    "table.sintoma": "Mensaje / síntoma",
+    "table.causa": "Causa probable y solución",
+    "trouble.1.symptom": "\"Permiso insuficiente … Microsoft Graph\"",
+    "trouble.1.fix": "Falta SecurityAlert.Read.All o SecurityIncident.Read.All, o el consentimiento de administrador.",
+    "trouble.2.symptom": "\"Permiso insuficiente … ActivityFeed.ReadDlp\"",
+    "trouble.2.fix": "Falta el permiso de Office 365 Management APIs o su consentimiento.",
+    "trouble.3.symptom": "Los eventos salen vacíos",
+    "trouble.3.fix": "La suscripción DLP.All se acaba de iniciar (espera hasta 12 horas) o la auditoría unificada está desactivada.",
+    "trouble.4.symptom": "\"No se pudo obtener el token\"",
+    "trouble.4.fix": "Tenant ID, Client ID o secreto incorrectos, o el secreto venció.",
+    "section.faq_seguridad": "Preguntas frecuentes y notas de seguridad",
+    "faq.1.q": "¿Por qué no puedo ver todas las políticas DLP?",
+    "faq.1.a": "Microsoft solo expone el catálogo de políticas por PowerShell de Security &amp; Compliance. El conector muestra las políticas que se activaron en los eventos.",
+    "faq.2.q": "¿El conector puede cerrar alertas?",
+    "faq.2.a": "No. Es de solo lectura.",
+    "faq.3.q": "¿Qué hago si el secreto se filtra?",
+    "faq.3.a": "Elimínalo en Certificados y secretos, crea uno nuevo y actualízalo en el formulario.",
+  },
+  "en": {
+    "doc_title": "Microsoft Purview DLP Connector — Setup Guide | Ruvic",
+    "toc_title": "Contents",
+    "toc.que_es": "What is it and what is it for?",
+    "toc.prerrequisitos": "Prerequisites",
+    "toc.configuracion_fabricante": "Vendor-side setup",
+    "toc.permisos": "Required permissions",
+    "toc.configuracion_ruvic": "Setup in Ruvic",
+    "toc.verificacion": "Verification",
+    "toc.solucion_problemas": "Troubleshooting",
+    "toc.faq_seguridad": "FAQ and security notes",
+    "guide_title": "Microsoft Purview DLP Connector — Setup Guide",
+    "guide_updated": "Last updated: October 2026",
+    "section.que_es": "What is it and what is it for?",
+    "que_es.body": "The Microsoft Purview DLP connector lets the Ruvic agent query Microsoft 365 data loss prevention: DLP alerts and incidents, policy match events and which policies are being triggered. You can ask things like:",
+    "que_es.example1": "\"Which high-severity DLP alerts are still new?\"",
+    "que_es.example2": "\"Who shared credit card information by email yesterday?\"",
+    "que_es.example3": "\"Which DLP policies triggered the most this week?\"",
+    "que_es.ops_intro": "Supported operations:",
+    "table.operacion": "Operation",
+    "table.que_hace": "What it does",
+    "op.1": "Queries DLP alerts by severity and status",
+    "op.2": "Queries incidents that contain DLP alerts",
+    "op.3": "Queries DLP audit events (user, file, policy, information type)",
+    "op.4": "Summarizes triggered policies and how many times",
+    "callout.main.title": "Read-only, with sensitive data",
+    "callout.main.body": "The connector changes nothing in Purview, but events include users and file names. Limit who can use the agent with this connector.",
+    "section.prerrequisitos": "Prerequisites",
+    "prereq.1": "Microsoft 365 with Purview DLP (E3/E5 or compliance add-on) and active DLP policies.",
+    "prereq.2": "Unified audit enabled in Microsoft Purview → Audit.",
+    "prereq.3": "Global or Application Administrator role to register the app and grant consent.",
+    "section.configuracion_fabricante": "Vendor-side setup",
+    "fabricante.intro": "You will register an application in Microsoft Entra ID with Graph and Office 365 Management APIs permissions.",
+    "step.1.label": "Register the application.",
+    "step.1.body": "In <strong>Microsoft Entra ID → App registrations → New registration</strong>, create \"Ruvic Purview DLP\". Copy the <strong>Application ID</strong> and the <strong>Directory ID</strong>.",
+    "step.2.label": "Add the Graph permissions.",
+    "step.2.body": "In <strong>API permissions → Microsoft Graph → Application permissions</strong>, select <code>SecurityAlert.Read.All</code> and <code>SecurityIncident.Read.All</code>.",
+    "step.3.label": "Add the audit permission.",
+    "step.3.body": "In <strong>Add a permission → Office 365 Management APIs → Application permissions</strong>, select <code>ActivityFeed.ReadDlp</code>. Then click <strong>Grant admin consent</strong>.",
+    "img.step3.placeholder": "[ Screenshot: Graph and Office 365 Management APIs permissions with consent — replace with assets/img/purview-permisos.png ]",
+    "step.4.label": "Create the secret.",
+    "step.4.body": "In <strong>Certificates &amp; secrets → New client secret</strong>, copy the <strong>Value</strong> right away.",
+    "section.permisos": "Required permissions",
+    "permisos.intro": "Application permissions, all read-only.",
+    "table.permiso": "Permission",
+    "table.para_que": "What the connector uses it for",
+    "perm.1.desc": "Query DLP alerts (Microsoft Graph)",
+    "perm.2.desc": "Query incidents (Microsoft Graph)",
+    "perm.3.desc": "Read DLP audit events (Office 365 Management APIs)",
+    "section.configuracion_ruvic": "Setup in Ruvic",
+    "ruvic.intro": "Go to <strong>Settings → Connectors</strong>, find the <strong>Microsoft Purview DLP</strong> card and click <strong>Configure</strong>. Fill in the form with the values from the previous section:",
+    "table.campo": "Form field",
+    "table.valor": "Value",
+    "field.tenant_id": "Tenant ID (Directory ID)",
+    "field.tenant_id.desc": "Microsoft Entra ID Directory (tenant) ID",
+    "field.client_id": "Client ID (Application ID)",
+    "field.client_id.desc": "Application (client) ID",
+    "field.client_secret": "Client Secret",
+    "field.client_secret.desc": "The secret Value. Stored encrypted",
+    "field.connect_timeout": "Connection timeout (seconds)",
+    "field.connect_timeout.desc": "Optional; <code>30</code> seconds by default",
+    "ruvic.save": "Save and click <strong>Test connection</strong>: the platform validates the credentials and access.",
+    "img.formulario.placeholder": "[ Screenshot: Microsoft Purview DLP connector form in Settings → Connectors — replace with assets/img/purview_dlp-form.png ]",
+    "section.verificacion": "Verification",
+    "verif.1.label": "Successful connection test.",
+    "verif.1.body": "The <em>Test connection</em> button must succeed and the card must show <strong>Configured</strong>.",
+    "verif.2.label": "Minimal test with the agent.",
+    "verif.2.body": "Open a new conversation and ask:",
+    "verif.2.prompt": "\"How many new DLP alerts are there and from which policies?\"",
+    "verif.2.result": "The agent should answer with real alerts. On a new setup, events may take up to 12 hours to appear.",
+    "section.solucion_problemas": "Troubleshooting",
+    "table.sintoma": "Message / symptom",
+    "table.causa": "Likely cause and fix",
+    "trouble.1.symptom": "\"Insufficient permission … Microsoft Graph\"",
+    "trouble.1.fix": "SecurityAlert.Read.All or SecurityIncident.Read.All, or admin consent, is missing.",
+    "trouble.2.symptom": "\"Insufficient permission … ActivityFeed.ReadDlp\"",
+    "trouble.2.fix": "The Office 365 Management APIs permission or its consent is missing.",
+    "trouble.3.symptom": "Events come back empty",
+    "trouble.3.fix": "The DLP.All subscription just started (wait up to 12 hours) or unified audit is off.",
+    "trouble.4.symptom": "\"Could not get the token\"",
+    "trouble.4.fix": "Wrong Tenant ID, Client ID or secret, or the secret expired.",
+    "section.faq_seguridad": "FAQ and security notes",
+    "faq.1.q": "Why can't I see all DLP policies?",
+    "faq.1.a": "Microsoft only exposes the policy catalog through Security &amp; Compliance PowerShell. The connector shows the policies that triggered in events.",
+    "faq.2.q": "Can the connector close alerts?",
+    "faq.2.a": "No. It's read-only.",
+    "faq.3.q": "What if the secret leaks?",
+    "faq.3.a": "Delete it in Certificates &amp; secrets, create a new one and update the form.",
+  },
+  };
+  /* El portal aplica el idioma del usuario (localStorage ruvic-docs-lang)
+     y actualiza [data-i18n], [data-i18n-placeholder] y [data-i18n-alt]. */
+</script>
+</body>
+</html>

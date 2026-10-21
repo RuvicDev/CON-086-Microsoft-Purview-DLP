@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ruvic-purview-dlp-connector"
+version = "1.0.0"
+description = "Prevención de pérdida de datos con Microsoft Purview: consultar alertas e incidentes DLP, consultar eventos DLP y las políticas que se activaron"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31,<3.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["ruvic_purview_dlp_connector*"]

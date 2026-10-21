@@ -1,0 +1,79 @@
+{
+  "id": "purview_dlp",
+  "name": "Microsoft Purview DLP",
+  "name_en": "Microsoft Purview DLP",
+  "version": "1.0.0",
+  "description": "Prevención de pérdida de datos con Microsoft Purview: consultar alertas e incidentes DLP, consultar eventos DLP y las políticas que se activaron",
+  "description_en": "Data loss prevention with Microsoft Purview: query DLP alerts and incidents, query DLP events and the policies that were triggered",
+  "icon": "icon.svg",
+  "category": "security",
+  "category_en": "security",
+  "keywords": [
+    "purview",
+    "dlp",
+    "data loss prevention",
+    "fuga de datos",
+    "microsoft 365",
+    "alertas",
+    "incidentes",
+    "politicas",
+    "cumplimiento",
+    "compliance"
+  ],
+  "library": {
+    "package": "ruvic-purview-dlp-connector",
+    "install": "pip install git+https://github.com/RuvicDev/CON-086-Microsoft-Purview-DLP.git#subdirectory=lib",
+    "import_name": "ruvic_purview_dlp_connector"
+  },
+  "auth_modes": [
+    {
+      "id": "client_credentials",
+      "label": "Aplicación de Microsoft Entra ID",
+      "fields": [
+        {
+          "key": "tenant_id",
+          "label": "Tenant ID (Directory ID)",
+          "type": "text",
+          "required": true,
+          "placeholder": "00000000-0000-0000-0000-000000000000",
+          "help_text": "Microsoft Entra ID → Información general → Id. de inquilino"
+        },
+        {
+          "key": "client_id",
+          "label": "Client ID (Application ID)",
+          "type": "text",
+          "required": true,
+          "placeholder": "00000000-0000-0000-0000-000000000000",
+          "help_text": "ID de la aplicación registrada en Microsoft Entra ID"
+        },
+        {
+          "key": "client_secret",
+          "label": "Client Secret",
+          "type": "password",
+          "secret": true,
+          "required": true,
+          "help_text": "Valor del secreto de cliente (no el 'Secret ID'); se muestra una sola vez al crearlo"
+        },
+        {
+          "key": "connect_timeout",
+          "label": "Timeout de conexión (segundos)",
+          "type": "number",
+          "required": false,
+          "default": "30"
+        }
+      ]
+    }
+  ],
+  "env_prefix": "RUVIC_PURVIEW_DLP_",
+  "operations": [
+    "dlp.alerts.list",
+    "dlp.incidents.list",
+    "dlp.events.list",
+    "dlp.policies.triggered"
+  ],
+  "test_connection": true,
+  "docs": {
+    "skill": "SKILL.md",
+    "permissions_note": "Permisos de aplicación con consentimiento de administrador: Microsoft Graph → SecurityAlert.Read.All y SecurityIncident.Read.All; Office 365 Management APIs → ActivityFeed.ReadDlp. La auditoría unificada de Microsoft 365 debe estar activada. El catálogo completo de políticas DLP no está disponible por REST (solo por PowerShell de Security & Compliance): el conector reporta las políticas que se activaron en los eventos."
+  }
+}
